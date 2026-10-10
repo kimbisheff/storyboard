@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Storyboard · JOUR 4462</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=Source+Serif+4:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #154734;
+    --green-dark: #0d2e22;
+    --gold: #C69214;
+    --ink: #1a1a1a;
+    --muted: #5c5c5c;
+    --rule: #8a8a8a;
+    --paper: #ffffff;
+    --tint: #f1f3ef;
+    --bg: #e9ece6;
+    --sans: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --serif: "Source Serif 4", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: var(--sans); color: var(--ink); font-size: 14px; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 10px 24px; background: var(--green); color: #fff;
+  }
+  .toolbar .brand { font-family: var(--serif); font-weight: 600; font-size: 17px; margin-right: 8px; }
+  .toolbar select {
+    max-width: 240px; padding: 5px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,.4);
+    background: #fff; color: var(--ink);
+  }
+  .toolbar .spacer { flex: 1; }
+  .tb-btn {
+    padding: 5px 11px; border-radius: 4px; border: 1px solid rgba(255,255,255,.45);
+    background: transparent; color: #fff; cursor: pointer; white-space: nowrap;
+  }
+  .tb-btn:hover { background: rgba(255,255,255,.12); }
+  .tb-btn.primary { background: var(--gold); border-color: var(--gold); color: #1a1a1a; font-weight: 600; }
+  .tb-btn.primary:hover { background: #d9a52a; }
+  .save-state { font-size: 12px; opacity: .8; min-width: 70px; }
+
+  /* ---------- Sheet ---------- */
+  main { padding: 24px; }
+  .sheet {
+    max-width: 1180px; margin: 0 auto; background: var(--paper);
+    padding: 32px 36px 40px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .sheet-head {
+    display: flex; justify-content: space-between; align-items: stretch; gap: 28px;
+    border-bottom: 2px solid var(--green); padding-bottom: 10px; margin-bottom: 20px;
+  }
+  .title-block h1 {
+    margin: 0; font-family: var(--serif); font-weight: 600; font-size: 30px; line-height: 1; color: var(--green);
+  }
+  .title-block .course { margin-top: 8px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .meta { flex: 1; max-width: 660px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+  .meta-row { display: flex; gap: 16px; align-items: flex-end; font-size: 12px; font-weight: 600; }
+  .line-field { display: flex; align-items: flex-end; gap: 6px; }
+  .line-field input {
+    border: 0; border-bottom: 1px solid var(--ink); background: transparent;
+    padding: 2px 2px 1px; font-weight: 400; font-size: 13px; min-width: 0; width: 100%;
+  }
+  .line-field input:focus { outline: none; border-bottom: 2px solid var(--gold); padding-bottom: 0; }
+  .line-field.team { flex: 1; }
+  .line-field.story { flex: 2; }
+  .runtime { white-space: nowrap; font-weight: 600; }
+  .runtime b { color: var(--green); font-size: 13px; }
+  .audio-key { font-size: 12px; color: #444; }
+
+  /* ---------- Frames ---------- */
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .frame {
+    border: 1.5px solid var(--ink); border-radius: 4px; display: flex; flex-direction: column;
+    background: var(--paper); overflow: hidden; transition: box-shadow .15s;
+  }
+  .frame.dragging { opacity: .4; }
+  .frame.drop-before { box-shadow: -5px 0 0 var(--gold); }
+  .frame.drop-after { box-shadow: 5px 0 0 var(--gold); }
+  .frame-bar {
+    height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 4px;
+    border-bottom: 1.5px solid var(--ink); background: var(--tint); font-size: 12px; font-weight: 600;
+  }
+  .handle {
+    cursor: grab; border: 0; background: none; padding: 4px 3px; color: var(--muted); line-height: 0;
+  }
+  .handle:active { cursor: grabbing; }
+  .shot-no { min-width: 58px; }
+  .shot-no span { display: inline-block; min-width: 18px; text-align: center; color: var(--green); font-size: 14px; }
+  .len { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .len input {
+    width: 44px; border: 0; border-bottom: 1px solid var(--ink); background: transparent;
+    text-align: center; font-weight: 400; padding: 1px 0;
+  }
+  .len input:focus { outline: none; border-bottom: 2px solid var(--gold); }
+  .frame-tools { display: flex; gap: 1px; margin-left: 4px; }
+  .icon-btn {
+    width: 24px; height: 24px; display: grid; place-items: center; padding: 0;
+    border: 0; border-radius: 3px; background: none; cursor: pointer; color: var(--muted);
+  }
+  .icon-btn:hover:not(:disabled) { background: #dde2d8; color: var(--ink); }
+  .icon-btn.del:hover { background: #f4dcd6; color: #8c1d18; }
+  .icon-btn:disabled { opacity: .3; cursor: default; }
+  .icon-btn svg, .handle svg { width: 14px; height: 14px; }
+
+  .picture {
+    position: relative; aspect-ratio: 16 / 9; border-bottom: 1.5px solid var(--ink);
+    background: #fff; cursor: pointer; overflow: hidden;
+  }
+  .picture img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .picture .hint {
+    position: absolute; left: 8px; bottom: 6px; font-size: 12px; color: #767676; pointer-events: none;
+  }
+  .picture:hover .hint, .picture.over .hint { color: var(--green); }
+  .picture.over { background: #fbf5e6; }
+  .picture .clear-img {
+    position: absolute; top: 6px; right: 6px; display: none;
+    padding: 2px 8px; font-size: 11px; border-radius: 3px; border: 0;
+    background: rgba(26,26,26,.75); color: #fff; cursor: pointer;
+  }
+  .picture.has-img .hint { display: none; }
+  .picture.has-img:hover .clear-img, .picture.has-img .clear-img:focus { display: block; }
+
+  .fields { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+  .field { display: flex; align-items: flex-start; gap: 6px; }
+  .field label { width: 70px; flex-shrink: 0; font-weight: 600; padding-top: 5px; }
+  .field textarea {
+    flex: 1; min-width: 0; resize: none; overflow: hidden; border: 0; background: transparent;
+    padding: 3px 2px 2px; line-height: 20px; font-size: 13px;
+    background-image: linear-gradient(to bottom, transparent 19px, var(--rule) 19px, var(--rule) 20px);
+    background-size: 100% 20px; background-position: 0 3px;
+  }
+  .field textarea:focus {
+    outline: none;
+    background-image: linear-gradient(to bottom, transparent 19px, var(--gold) 19px, var(--gold) 20px);
+  }
+  .field textarea::placeholder { color: #a3a3a3; }
+
+  .add-tile {
+    border: 1.5px dashed #9aa596; border-radius: 4px; background: transparent; cursor: pointer;
+    min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    color: var(--green); font-weight: 600;
+  }
+  .add-tile:hover { background: var(--tint); border-color: var(--green); }
+  .add-tile .plus { font-size: 30px; font-weight: 400; line-height: 1; }
+
+  .foot { max-width: 1180px; margin: 14px auto 0; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; padding: 10px 14px; border-radius: 6px; font-size: 13px;
+    display: flex; gap: 14px; align-items: center; opacity: 0; pointer-events: none; transition: .2s; z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+  .toast button { background: none; border: 0; color: var(--gold); font-weight: 600; cursor: pointer; padding: 0; }
+
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sheet-head { flex-direction: column; } }
+  @media (max-width: 600px) {
+    main { padding: 12px; } .sheet { padding: 20px 16px; } .grid { grid-template-columns: 1fr; }
+    .toolbar { padding: 10px 12px; } .meta-row { flex-wrap: wrap; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* ---------- Print layout ----------
+     Built off-screen at real page size so text can be measured and fitted before printing. */
+  #print-root { position: absolute; left: -20000px; top: 0; }
+  @page { size: letter landscape; margin: 0.4in; }
+  .p-page {
+    width: 10.2in; height: 7.6in; display: flex; flex-direction: column; gap: 0.16in;
+    overflow: hidden; background: #fff; font-family: var(--sans); color: var(--ink);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .p-head {
+    display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid var(--green);
+    padding-bottom: 6px; flex-shrink: 0;
+  }
+  .p-head h1 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1; color: var(--green); }
+  .p-head .course { margin-top: 6px; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+  .p-meta { flex: 1; max-width: 6.4in; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
+  .p-meta-row { display: flex; gap: 14px; align-items: flex-end; font-size: 10.5px; font-weight: 600; }
+  .p-line { display: flex; align-items: flex-end; gap: 5px; min-width: 0; }
+  .p-line span { flex: 1; min-width: 0; border-bottom: 1px solid var(--ink); font-weight: 400; min-height: 14px; padding: 0 2px; overflow-wrap: anywhere; }
+  .p-key { font-size: 9.5px; color: #444; }
+  .p-grid {
+    flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 0.16in;
+  }
+  .p-frame { border: 1.5px solid var(--ink); border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .p-bar {
+    height: 20px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;
+    padding: 0 7px; border-bottom: 1.5px solid var(--ink); background: var(--tint); font-size: 10px; font-weight: 600;
+  }
+  .p-bar em { font-style: normal; font-weight: 400; display: inline-block; min-width: 26px; text-align: center; border-bottom: 1px solid var(--ink); }
+  .p-pic { flex: 1 1 auto; min-height: var(--pic-min, 1.1in); border-bottom: 1.5px solid var(--ink); position: relative; }
+  .p-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .p-fields { flex-shrink: 0; padding: 3px 7px 6px; font-size: var(--fs, 9.5px); }
+  .p-row { display: flex; gap: 5px; align-items: baseline; padding-top: 3px; }
+  .p-row b { width: 5.4em; flex-shrink: 0; }
+  .p-row span {
+    flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere;
+    line-height: 1.35em; min-height: calc(var(--lines, 1) * 1.35em);
+    border-bottom: 1px solid var(--rule); padding-bottom: 1px;
+  }
+  .p-frame.blank { border-style: dashed; border-color: #c4c4c4; }
+  .p-frame.blank * { visibility: hidden; }
+
+  @media print {
+    body { background: #fff; }
+    .toolbar, main, .toast, .foot { display: none !important; }
+    #print-root { position: static; }
+    .p-page { page-break-after: always; break-after: page; }
+    .p-page:last-child { page-break-after: auto; break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="toolbar" role="toolbar" aria-label="Storyboard controls">
+  <span class="brand">Storyboard</span>
+  <label class="sr-only" for="board-select" style="position:absolute;left:-9999px">Saved storyboards</label>
+  <select id="board-select" title="Switch storyboard"></select>
+  <button class="tb-btn" id="btn-new">New</button>
+  <button class="tb-btn" id="btn-rename">Rename</button>
+  <button class="tb-btn" id="btn-delete">Delete</button>
+  <span class="spacer"></span>
+  <span class="save-state" id="save-state" aria-live="polite"></span>
+  <button class="tb-btn" id="btn-import">Import</button>
+  <button class="tb-btn" id="btn-export">Export</button>
+  <button class="tb-btn primary" id="btn-print">Print / PDF</button>
+  <input type="file" id="import-file" accept="application/json,.json" hidden>
+  <input type="file" id="image-file" accept="image/*" hidden>
+</header>
+
+<main>
+  <section class="sheet">
+    <div class="sheet-head">
+      <div class="title-block">
+        <h1>Video Storyboard</h1>
+        <div class="course">JOUR 4462 · Senior Media Practicum</div>
+      </div>
+      <div class="meta">
+        <div class="meta-row">
+          <label class="line-field team">Team <input id="f-team" type="text" autocomplete="off"></label>
+          <label class="line-field story">Story <input id="f-story" type="text" autocomplete="off"></label>
+          <span class="runtime">Runtime <b id="runtime">0:00</b></span>
+        </div>
+        <div class="audio-key">Audio key: SOT = soundbite · NAT = natural sound · VO = narration. List the speaker and timecode for every SOT.</div>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+  <div class="foot">
+    <span>Your work saves automatically in this browser. Use Export to move it to another computer or share it with your team.</span>
+    <span>Drag a shot by its handle, or use the arrows, to reorder.</span>
+  </div>
+</main>
+
+<div id="print-root" aria-hidden="true"></div>
+
+<div class="toast" id="toast" role="status"><span id="toast-msg"></span><button id="toast-undo" hidden>Undo</button></div>
+
+<script>
+(() => {
+  const STORE_KEY = 'jour4462-storyboards-v1';
+  const PER_PAGE = 6;
+  const FIELDS = [
+    { key: 'audio',    label: 'Audio',     rows: 2, ph: 'SOT / NAT / VO and what we hear' },
+    { key: 'who',      label: 'Who / TC',  rows: 1, ph: 'Speaker, 00:00:00' },
+    { key: 'onscreen', label: 'On screen', rows: 1, ph: 'What we see' },
+    { key: 'purpose',  label: 'Purpose',   rows: 1, ph: 'Why this shot is here' },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const blankFrame = () => ({ id: uid(), length: '', audio: '', who: '', onscreen: '', purpose: '', image: '' });
+  const blankBoard = (name) => ({ name, team: '', story: '', frames: Array.from({ length: 6 }, blankFrame) });
+
+  const ICONS = {
+    grip: '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg>',
+    left: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3 5 8l5 5"/></svg>',
+    right: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 3 5 5-5 5"/></svg>',
+    copy: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8.5" height="8.5" rx="1"/><path d="M3 10.5V3.5a1 1 0 0 1 1-1h6.5"/></svg>',
+    del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 9h5.8l.6-9"/></svg>',
+  };
+
+  // ---------- State ----------
+  let state = load();
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (s && s.boards && s.current && s.boards[s.current]) return s;
+    } catch (e) {}
+    const id = uid();
+    return { current: id, boards: { [id]: blankBoard('My storyboard') } };
+  }
+  const board = () => state.boards[state.current];
+
+  let saveTimer;
+  function save() {
+    $('save-state').textContent = 'Saving…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+        $('save-state').textContent = 'Saved';
+      } catch (e) {
+        $('save-state').textContent = 'Not saved';
+        toast('Browser storage is full. Remove some images or export and delete old storyboards.');
+      }
+    }, 300);
+  }
+
+  // ---------- Toast with undo ----------
+  let toastTimer, undoFn = null;
+  function toast(msg, undo) {
+    $('toast-msg').textContent = msg;
+    undoFn = undo || null;
+    $('toast-undo').hidden = !undo;
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').classList.remove('show'), undo ? 6000 : 4000);
+  }
+  $('toast-undo').onclick = () => { if (undoFn) undoFn(); undoFn = null; $('toast').classList.remove('show'); };
+
+  // ---------- Rendering ----------
+  function renderBoardList() {
+    const sel = $('board-select');
+    sel.innerHTML = '';
+    Object.entries(state.boards)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name))
+      .forEach(([id, b]) => {
+        const o = document.createElement('option');
+        o.value = id; o.textContent = b.name;
+        if (id === state.current) o.selected = true;
+        sel.appendChild(o);
+      });
+  }
+
+  function renderHeader() {
+    $('f-team').value = board().team || '';
+    $('f-story').value = board().story || '';
+    updateRuntime();
+  }
+
+  function updateRuntime() {
+    const total = board().frames.reduce((sum, f) => sum + (parseFloat(f.length) || 0), 0);
+    const secs = Math.round(total);
+    $('runtime').textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  }
+
+  function autosize(ta) {
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(ta.scrollHeight, ta.rows * 20 + 5) + 'px';
+  }
+
+  function renderFrames(focusId) {
+    const grid = $('grid');
+    grid.innerHTML = '';
+    const frames = board().frames;
+    frames.forEach((f, i) => grid.appendChild(frameEl(f, i, frames.length)));
+
+    const add = document.createElement('button');
+    add.className = 'add-tile';
+    add.innerHTML = '<span class="plus">+</span>Add shot';
+    add.onclick = () => {
+      const f = blankFrame();
+      board().frames.push(f);
+      save(); renderFrames(f.id);
+    };
+    grid.appendChild(add);
+
+    grid.querySelectorAll('textarea').forEach(autosize);
+    if (focusId) {
+      const el = grid.querySelector(`[data-id="${focusId}"] .len input`);
+      if (el) { el.focus(); el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    }
+    updateRuntime();
+  }
+
+  function frameEl(f, i, n) {
+    const el = document.createElement('article');
+    el.className = 'frame';
+    el.dataset.id = f.id;
+    el.setAttribute('aria-label', `Shot ${i + 1}`);
+    el.innerHTML = `
+      <div class="frame-bar">
+        <button class="handle" draggable="true" title="Drag to reorder" aria-label="Drag shot ${i + 1} to reorder">${ICONS.grip}</button>
+        <span class="shot-no">SHOT # <span>${i + 1}</span></span>
+        <label class="len">LENGTH <input type="text" inputmode="decimal" aria-label="Length of shot ${i + 1} in seconds"> sec</label>
+        <span class="frame-tools">
+          <button class="icon-btn" data-act="left" title="Move earlier" aria-label="Move shot ${i + 1} earlier" ${i === 0 ? 'disabled' : ''}>${ICONS.left}</button>
+          <button class="icon-btn" data-act="right" title="Move later" aria-label="Move shot ${i + 1} later" ${i === n - 1 ? 'disabled' : ''}>${ICONS.right}</button>
+          <button class="icon-btn" data-act="dup" title="Duplicate" aria-label="Duplicate shot ${i + 1}">${ICONS.copy}</button>
+          <button class="icon-btn del" data-act="del" title="Delete" aria-label="Delete shot ${i + 1}">${ICONS.del}</button>
+        </span>
+      </div>
+      <div class="picture${f.image ? ' has-img' : ''}" tabindex="0" role="button" aria-label="Add a sketch or screen grab for shot ${i + 1}">
+        ${f.image ? `<img alt="Frame for shot ${i + 1}">` : ''}
+        <span class="hint">Sketch or screen grab: click, drop, or paste an image</span>
+        <button class="clear-img" type="button">Remove image</button>
+      </div>
+      <div class="fields">
+        ${FIELDS.map(fd => `
+          <div class="field">
+            <label for="${f.id}-${fd.key}">${fd.label}</label>
+            <textarea id="${f.id}-${fd.key}" rows="${fd.rows}" data-key="${fd.key}" placeholder="${fd.ph}"></textarea>
+          </div>`).join('')}
+      </div>`;
+
+    if (f.image) el.querySelector('img').src = f.image;
+
+    const len = el.querySelector('.len input');
+    len.value = f.length || '';
+    len.addEventListener('input', () => {
+      len.value = len.value.replace(/[^0-9.:]/g, '');
+      f.length = len.value; updateRuntime(); save();
+    });
+
+    el.querySelectorAll('textarea').forEach(ta => {
+      ta.value = f[ta.dataset.key] || '';
+      ta.addEventListener('input', () => { f[ta.dataset.key] = ta.value; autosize(ta); save(); });
+    });
+
+    el.querySelectorAll('[data-act]').forEach(btn => {
+      btn.onclick = () => frameAction(btn.dataset.act, f.id);
+    });
+
+    // Image handling
+    const pic = el.querySelector('.picture');
+    pic.addEventListener('click', (e) => {
+      if (e.target.closest('.clear-img')) return;
+      pickImageFor = f.id; $('image-file').value = ''; $('image-file').click();
+    });
+    pic.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pic.click(); }
+    });
+    pic.addEventListener('paste', (e) => {
+      const file = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith('image/'));
+      if (file) { e.preventDefault(); setImage(f.id, file); }
+    });
+    pic.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); pic.classList.add('over'); }
+    });
+    pic.addEventListener('dragleave', () => pic.classList.remove('over'));
+    pic.addEventListener('drop', (e) => {
+      pic.classList.remove('over');
+      const file = [...e.dataTransfer.files].find(x => x.type.startsWith('image/'));
+      if (file) { e.preventDefault(); e.stopPropagation(); setImage(f.id, file); }
+    });
+    el.querySelector('.clear-img').onclick = (e) => {
+      e.stopPropagation();
+      const prev = f.image; f.image = ''; save(); renderFrames();
+      toast('Image removed.', () => { f.image = prev; save(); renderFrames(); });
+    };
+
+    // Reorder drag
+    const handle = el.querySelector('.handle');
+    handle.addEventListener('dragstart', (e) => {
+      dragId = f.id;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', f.id);
+      e.dataTransfer.setDragImage(el, 20, 16);
+      requestAnimationFrame(() => el.classList.add('dragging'));
+    });
+    handle.addEventListener('dragend', () => { dragId = null; clearDropMarks(); el.classList.remove('dragging'); });
+    el.addEventListener('dragover', (e) => {
+      if (!dragId || dragId === f.id) return;
+      e.preventDefault();
+      const after = e.clientX > el.getBoundingClientRect().left + el.offsetWidth / 2;
+      clearDropMarks();
+      el.classList.add(after ? 'drop-after' : 'drop-before');
+    });
+    el.addEventListener('drop', (e) => {
+      if (!dragId || dragId === f.id) return;
+      e.preventDefault();
+      const after = el.classList.contains('drop-after');
+      const frames = board().frames;
+      const from = frames.findIndex(x => x.id === dragId);
+      const [moved] = frames.splice(from, 1);
+      let to = frames.findIndex(x => x.id === f.id) + (after ? 1 : 0);
+      frames.splice(to, 0, moved);
+      dragId = null; save(); renderFrames();
+    });
+
+    return el;
+  }
+
+  let dragId = null;
+  function clearDropMarks() {
+    document.querySelectorAll('.drop-before, .drop-after').forEach(x => x.classList.remove('drop-before', 'drop-after'));
+  }
+
+  function frameAction(act, id) {
+    const frames = board().frames;
+    const i = frames.findIndex(x => x.id === id);
+    if (act === 'left' && i > 0) { [frames[i - 1], frames[i]] = [frames[i], frames[i - 1]]; save(); renderFrames(); focusTool(id, 'left'); }
+    if (act === 'right' && i < frames.length - 1) { [frames[i + 1], frames[i]] = [frames[i], frames[i + 1]]; save(); renderFrames(); focusTool(id, 'right'); }
+    if (act === 'dup') {
+      const copy = { ...frames[i], id: uid() };
+      frames.splice(i + 1, 0, copy); save(); renderFrames(copy.id);
+    }
+    if (act === 'del') {
+      const [removed] = frames.splice(i, 1);
+      save(); renderFrames();
+      toast(`Shot ${i + 1} deleted.`, () => { board().frames.splice(i, 0, removed); save(); renderFrames(); });
+    }
+  }
+  function focusTool(id, act) {
+    const b = document.querySelector(`[data-id="${id}"] [data-act="${act}"]`);
+    if (b && !b.disabled) b.focus();
+    else document.querySelector(`[data-id="${id}"] .handle`)?.focus();
+  }
+
+  // ---------- Images (downscaled so localStorage doesn't fill up) ----------
+  let pickImageFor = null;
+  $('image-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file && pickImageFor) setImage(pickImageFor, file);
+  });
+  function setImage(frameId, file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 960;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const f = board().frames.find(x => x.id === frameId);
+        if (!f) return;
+        f.image = c.toDataURL('image/jpeg', 0.78);
+        save(); renderFrames();
+      };
+      img.onerror = () => toast('That file could not be read as an image.');
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ---------- Header fields ----------
+  $('f-team').addEventListener('input', (e) => { board().team = e.target.value; save(); });
+  $('f-story').addEventListener('input', (e) => { board().story = e.target.value; save(); });
+
+  // ---------- Board management ----------
+  function renderAll() { renderBoardList(); renderHeader(); renderFrames(); }
+
+  $('board-select').addEventListener('change', (e) => { state.current = e.target.value; save(); renderAll(); });
+  $('btn-new').onclick = () => {
+    const name = prompt('Name for the new storyboard:', 'Untitled storyboard');
+    if (name === null) return;
+    const id = uid();
+    state.boards[id] = blankBoard(name.trim() || 'Untitled storyboard');
+    state.current = id; save(); renderAll();
+  };
+  $('btn-rename').onclick = () => {
+    const name = prompt('Rename this storyboard:', board().name);
+    if (name === null || !name.trim()) return;
+    board().name = name.trim(); save(); renderBoardList();
+  };
+  $('btn-delete').onclick = () => {
+    if (!confirm(`Delete "${board().name}"? Export it first if you might need it again.`)) return;
+    delete state.boards[state.current];
+    const ids = Object.keys(state.boards);
+    if (!ids.length) { const id = uid(); state.boards[id] = blankBoard('My storyboard'); ids.push(id); }
+    state.current = ids[0]; save(); renderAll();
+  };
+
+  // ---------- Export / Import ----------
+  $('btn-export').onclick = () => {
+    const b = board();
+    const data = { app: 'jour4462-storyboard', version: 1, exported: new Date().toISOString(), board: b };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (b.name || 'storyboard').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  $('btn-import').onclick = () => { $('import-file').value = ''; $('import-file').click(); };
+  $('import-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const b = data.board;
+      if (!b || !Array.isArray(b.frames)) throw new Error('bad');
+      const clean = {
+        name: String(b.name || file.name.replace(/\.json$/i, '')),
+        team: String(b.team || ''), story: String(b.story || ''),
+        frames: b.frames.map(f => ({
+          id: uid(), length: String(f.length || ''), audio: String(f.audio || ''), who: String(f.who || ''),
+          onscreen: String(f.onscreen || ''), purpose: String(f.purpose || ''),
+          image: typeof f.image === 'string' && f.image.startsWith('data:image/') ? f.image : '',
+        })),
+      };
+      const taken = new Set(Object.values(state.boards).map(x => x.name));
+      if (taken.has(clean.name)) clean.name += ' (imported)';
+      const id = uid();
+      state.boards[id] = clean; state.current = id; save(); renderAll();
+      toast(`Imported "${clean.name}".`);
+    } catch (err) {
+      toast('That file is not a storyboard export from this tool.');
+    }
+  });
+
+  // ---------- Print ----------
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function buildPrint() {
+    const b = board();
+    const frames = b.frames.length ? b.frames : [blankFrame()];
+    const pages = Math.ceil(frames.length / PER_PAGE);
+    let html = '';
+    for (let p = 0; p < pages; p++) {
+      const slice = frames.slice(p * PER_PAGE, p * PER_PAGE + PER_PAGE);
+      while (slice.length < PER_PAGE) slice.push(null);
+      html += `<div class="p-page">
+        <div class="p-head">
+          <div><h1>Video Storyboard</h1><div class="course">JOUR 4462 · Senior Media Practicum</div></div>
+          <div class="p-meta">
+            <div class="p-meta-row">
+              <div class="p-line" style="flex:1">Team<span>${esc(b.team)}</span></div>
+              <div class="p-line" style="flex:2">Story<span>${esc(b.story)}</span></div>
+              <div class="p-line">Page<span style="flex:none;width:24px;text-align:center">${p + 1}</span>of<span style="flex:none;width:24px;text-align:center">${pages}</span></div>
+            </div>
+            <div class="p-key">Audio key: SOT = soundbite · NAT = natural sound · VO = narration. List the speaker and timecode for every SOT. &nbsp;Runtime ${$('runtime').textContent}</div>
+          </div>
+        </div>
+        <div class="p-grid">${slice.map((f, k) => printFrame(f, p * PER_PAGE + k + 1)).join('')}</div>
+      </div>`;
+    }
+    $('print-root').innerHTML = html;
+    return fitPrint();
+  }
+  function printFrame(f, n) {
+    if (!f) return '<div class="p-frame blank"></div>';
+    return `<div class="p-frame">
+      <div class="p-bar"><span>SHOT # <em>${n}</em></span><span>LENGTH <em>${esc(f.length)}</em> sec</span></div>
+      <div class="p-pic">${f.image ? `<img src="${f.image}" alt="">` : ''}</div>
+      <div class="p-fields">
+        <div class="p-row"><b>Audio</b><span style="--lines:2">${esc(String(f.audio || '').trim())}</span></div>
+        <div class="p-row"><b>Who / TC</b><span>${esc(f.who)}</span></div>
+        <div class="p-row"><b>On screen</b><span>${esc(f.onscreen)}</span></div>
+        <div class="p-row"><b>Purpose</b><span>${esc(f.purpose)}</span></div>
+      </div>
+    </div>`;
+  }
+
+  // Shrink text, then the picture area, until each shot's content fits its box.
+  function fitPrint() {
+    const overflowing = (el) => el.scrollHeight > el.clientHeight + 1;
+    document.querySelectorAll('#print-root .p-frame:not(.blank)').forEach(frame => {
+      let fs = 9.5;
+      const steps = [['--pic-min', '1.1in'], ['--pic-min', '0.7in'], ['--pic-min', '0.35in']];
+      for (const [prop, val] of steps) {
+        frame.style.setProperty(prop, val);
+        while (overflowing(frame) && fs > 6.5) { fs -= 0.5; frame.style.setProperty('--fs', fs + 'px'); }
+        if (!overflowing(frame)) break;
+        fs = 9.5; frame.style.setProperty('--fs', fs + 'px');
+      }
+      while (overflowing(frame) && fs > 6.5) { fs -= 0.5; frame.style.setProperty('--fs', fs + 'px'); }
+      frame.dataset.overflow = overflowing(frame) ? '1' : '';
+    });
+    return document.querySelectorAll('#print-root .p-frame[data-overflow="1"]').length;
+  }
+
+  window.addEventListener('beforeprint', buildPrint);
+  $('btn-print').onclick = () => {
+    const tooLong = buildPrint();
+    if (tooLong && !confirm(`${tooLong} shot${tooLong > 1 ? 's have' : ' has'} more text than fits in a printed box, even at the smallest size. Some text will be cut off. Print anyway?`)) return;
+    window.print();
+  };
+
+  window.addEventListener('resize', () => document.querySelectorAll('.field textarea').forEach(autosize));
+  renderAll();
+})();
+</script>
+</body>
+</html>
